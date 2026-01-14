@@ -7,7 +7,7 @@ import * as XLSX from 'xlsx';
 import https from 'https';
 import { Cep } from './cep.entity';
 import { CepStreamEvent } from './cep.types';
-
+import { Multer } from 'multer';
 
 const httpsAgent = new https.Agent({ family: 4 });
 
@@ -91,7 +91,7 @@ export class CepService {
      PROCESSAMENTO
   ========================= */
 
-  async startProcess(file: Express.Multer.File, processId: string) {
+  async startProcess(file: Multer.File, processId: string) {
     /* ===== Ler planilha ===== */
     const workbook = XLSX.read(file.buffer, { type: 'buffer' });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
