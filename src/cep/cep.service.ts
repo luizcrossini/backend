@@ -8,6 +8,7 @@ import https from 'https';
 import { Cep } from './cep.entity';
 import { CepStreamEvent } from './cep.types';
 
+
 const httpsAgent = new https.Agent({ family: 4 });
 
 const CONCURRENCY = 3;

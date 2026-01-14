@@ -13,6 +13,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response, Request } from 'express';
 import { CepService } from './cep.service';
 import { CepStreamEvent } from './cep.types';
+import { Multer } from 'multer';
 
 @Controller('cep')
 export class CepController {
