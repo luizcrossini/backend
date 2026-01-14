@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: cep_postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: cepdb
+      POSTGRES_USER: cepuser
+      POSTGRES_PASSWORD: ceppass
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+
+
+volumes:
+  pgdata:
