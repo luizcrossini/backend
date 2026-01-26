@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import axios from 'axios';
 
+
+
 type StreamEvent = {
   processId: string;
   index: number;
@@ -17,8 +19,8 @@ type StreamEvent = {
 function percent(value: number, total: number) {
   return total === 0 ? 0 : Math.round((value / total) * 100);
 }
+const API_URL = "https://backend-9apo.onrender.com";
 
-const API_URL = import.meta.env.VITE_API_URL;
 function App() {
   const [file, setFile] = useState<File | null>(null);
   const [events, setEvents] = useState<StreamEvent[]>([]);
