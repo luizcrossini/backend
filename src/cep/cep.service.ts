@@ -7,6 +7,7 @@ import * as XLSX from 'xlsx';
 import https from 'https';
 import { Cep } from './cep.entity';
 import { CepStreamEvent } from './cep.types';
+import { Express } from 'express';
 
 const httpsAgent = new https.Agent({ family: 4 });
 
@@ -57,6 +58,33 @@ export class CepService {
      APIs
   ========================= */
 
+  /**
+   * 🔴 CORREIOS (PRIMEIRA CONSULTA)
+   * Requer token (contrato oficial)
+   */
+  private async fetchCorreios(cep: string) {
+    const res = await axios.get(
+      `${process.env.CORREIOS_API_URL}/enderecos/${cep}`,
+      {
+        timeout: 10000,
+        headers: {
+          Authorization: `Bearer ${process.env.CORREIOS_API_TOKEN}`,
+        },
+        httpsAgent,
+      },
+    );
+
+    return {
+      logradouro: res.data.logradouro ?? '',
+      cidade: res.data.cidade,
+      uf: res.data.uf,
+      fonte: 'Correios',
+    };
+  }
+
+  /**
+   * ViaCEP
+   */
   private async fetchViaCep(cep: string) {
     const res = await axios.get(`https://viacep.com.br/ws/${cep}/json/`, {
       timeout: 10000,
@@ -73,6 +101,9 @@ export class CepService {
     };
   }
 
+  /**
+   * BrasilAPI
+   */
   private async fetchBrasilApi(cep: string) {
     const res = await axios.get(`https://brasilapi.com.br/api/cep/v1/${cep}`, {
       timeout: 10000,
@@ -148,12 +179,19 @@ export class CepService {
           fonte: string;
         } | null = null;
 
-        /* --- ViaCEP --- */
+        /* --- CORREIOS (1º) --- */
         try {
-          data = await this.fetchViaCep(cep);
+          data = await this.fetchCorreios(cep);
         } catch {}
 
-        /* --- Fallback --- */
+        /* --- ViaCEP (2º) --- */
+        if (!data) {
+          try {
+            data = await this.fetchViaCep(cep);
+          } catch {}
+        }
+
+        /* --- BrasilAPI (3º) --- */
         if (!data) {
           try {
             data = await this.fetchBrasilApi(cep);
@@ -164,7 +202,7 @@ export class CepService {
               total,
               cep,
               status: 'ERROR',
-              reason: 'Falha ViaCEP + BrasilAPI',
+              reason: 'Falha Correios + ViaCEP + BrasilAPI',
             });
             await delay(BASE_DELAY);
             continue;
@@ -184,7 +222,7 @@ export class CepService {
             cep_unico: false,
             fonte: data.fonte,
           })
-          .orIgnore() // 🔥 ESSENCIAL
+          .orIgnore()
           .execute();
 
         this.emit(processId, {
