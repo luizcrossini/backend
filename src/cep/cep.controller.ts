@@ -24,7 +24,7 @@ export class CepController {
   @Post('upload/:processId')
   @UseInterceptors(FileInterceptor('file'))
   async upload(
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: any,
     @Param('processId') processId: string,
   ) {
     // roda em background
