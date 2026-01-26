@@ -13,7 +13,6 @@ const httpsAgent = new https.Agent({ family: 4 });
 
 const CONCURRENCY = 3;
 const BASE_DELAY = 400;
-
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -21,20 +20,20 @@ function delay(ms: number) {
 @Injectable()
 export class CepService {
   private streams = new Map<string, (event: CepStreamEvent) => void>();
-
+  
   constructor(
     @InjectRepository(Cep)
     private readonly cepRepo: Repository<Cep>,
   ) {}
-
+  
   /* =========================
-     STREAM
+  STREAM
   ========================= */
-
+  
   registerStream(processId: string, emit: (e: CepStreamEvent) => void) {
     this.streams.set(processId, emit);
   }
-
+  
   unregisterStream(processId: string) {
     this.streams.delete(processId);
   }
