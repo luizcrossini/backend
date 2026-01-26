@@ -11,8 +11,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response, Request } from 'express';
-import { CepService } from './cep.service';
-import { CepStreamEvent } from './cep.types';
+import { CepService } from '../cep/cep.service';
+import { CepStreamEvent } from '../cep/cep.types';
 
 @Controller('cep')
 export class CepController {
