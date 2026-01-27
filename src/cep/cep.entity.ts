@@ -1,25 +1,33 @@
-import { Entity, Column, PrimaryColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+} from 'typeorm';
 
-@Entity({ schema: 'geo', name: 'dim_cep' })
+@Entity('ceps')
 export class Cep {
-  @PrimaryColumn({ type: 'varchar', length: 8 })
-  cep!: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-  @Column({ type: 'varchar', nullable: true })
-  logradouro?: string | null;
+  @Column({ length: 9 })
+  cep: string;
 
-  @Column({ type: 'varchar', nullable: true })
-  bairro?: string;
+  @Column()
+  logradouro: string;
 
-  @Column({ type: 'varchar' })
-  cidade!: string;
+  @Column()
+  bairro: string;
 
-  @Column({ type: 'char', length: 2 })
-  uf!: string;
+  @Column()
+  cidade: string;
 
-  @Column({ type: 'boolean', default: false })
-  cep_unico!: boolean;
+  @Column({ length: 2 })
+  uf: string;
 
-  @Column({ type: 'varchar', default: 'ViaCEP' })
-  fonte!: string;
+  @Column()
+  origem: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
 }
