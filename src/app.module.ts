@@ -1,20 +1,18 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
+
 import { CorreiosModule } from './correios/correios.module';
 import { CepModule } from './cep/cep.module';
 
 @Module({
-  imports: [CorreiosModule],
-})
-@Module({
   imports: [
-    // Carrega .env
+    // 🔹 .env global
     ConfigModule.forRoot({
       isGlobal: true,
     }),
 
-    // Banco de dados (Supabase)
+    // 🔹 Banco de dados (Supabase / Postgres)
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST,
@@ -30,7 +28,8 @@ import { CepModule } from './cep/cep.module';
       synchronize: false, // NUNCA true em produção
     }),
 
-    // Módulos da aplicação
+    // 🔹 Módulos da aplicação
+    CorreiosModule,
     CepModule,
   ],
 })
