@@ -1,9 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
-
+import { CorreiosModule } from './correios/correios.module';
 import { CepModule } from './cep/cep.module';
 
+@Module({
+  imports: [CorreiosModule],
+})
 @Module({
   imports: [
     // Carrega .env
