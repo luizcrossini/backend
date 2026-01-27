@@ -1,61 +1,32 @@
-import { Injectable, HttpException, Logger } from '@nestjs/common';
-import axios, { AxiosResponse } from 'axios';
+import { Injectable, HttpException } from '@nestjs/common';
+import axios from 'axios';
+import https from 'https';
 import { CorreiosCepV3Response } from './dto/correios-cep.dto';
-import { httpsAgentIPv4 } from '../http/ipv4-agent';
+
+const httpsAgent = new https.Agent({
+  family: 4, // 🔥 FORÇA IPV4
+});
 
 @Injectable()
 export class CorreiosService {
-  private readonly logger = new Logger(CorreiosService.name);
-
   async consultarCep(cep: string): Promise<CorreiosCepV3Response> {
     try {
-      const response: AxiosResponse<CorreiosCepV3Response> = await axios.get(
+      const response = await axios.get<CorreiosCepV3Response>(
         `${process.env.CORREIOS_CEP_V3_URL}/${cep}`,
         {
+          httpsAgent,
+          timeout: 8000,
           headers: {
             Authorization: `Bearer ${process.env.CORREIOS_BEARER_TOKEN}`,
             Accept: 'application/json',
           },
-          httpsAgent: httpsAgentIPv4, // 🔥 FORÇA IPv4
-          timeout: 8000, // 🔥 evita travar container
         },
       );
 
-      return {
-        fonte: 'correios',
-        ...response.data,
-      } as CorreiosCepV3Response;
-    } catch (error: unknown) {
-      // 🔴 erro de rede (Render)
-      if (
-        axios.isAxiosError(error) &&
-        (error.code === 'EHOSTUNREACH' || error.code === 'ENETUNREACH')
-      ) {
-        this.logger.error(`Erro de rede ao consultar Correios (${cep})`);
-        throw new HttpException(
-          'Serviço dos Correios indisponível (erro de rede)',
-          503,
-        );
-      }
-
-      // 🔴 erro HTTP retornado pela API dos Correios
-      if (axios.isAxiosError(error)) {
-        this.logger.warn(
-          `Erro Correios ${error.response?.status} para CEP ${cep}`,
-        );
-
-        throw new HttpException(
-          'Erro ao consultar CEP nos Correios (v3)',
-          error.response?.status ?? 502,
-        );
-      }
-
-      // 🔴 erro inesperado
-      this.logger.error(`Erro inesperado ao consultar CEP ${cep}`);
-      throw new HttpException(
-        'Erro inesperado ao consultar CEP nos Correios (v3)',
-        500,
-      );
+      return response.data;
+    } catch (error) {
+      console.error('🚨 ERRO REDE CORREIOS:', error);
+      throw new HttpException('Falha de comunicação com os Correios', 503);
     }
   }
 }
