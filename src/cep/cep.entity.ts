@@ -2,21 +2,21 @@ import { Entity, Column, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: 'dim_cep', schema: 'geo' })
 export class Cep {
-  @PrimaryColumn({ type: 'varchar', length: 8 })
+  @PrimaryColumn({ length: 8 })
   cep: string;
 
-  @Column({ type: 'varchar' })
+  @Column()
   cidade: string;
 
-  @Column({ type: 'bpchar', length: 2 })
+  @Column({ length: 2, type: 'char' })
   uf: string;
 
-  @Column({ type: 'boolean', name: 'cep_unico' })
+  @Column({ name: 'cep_unico', type: 'boolean' })
   cepUnico: boolean;
 
-  @Column({ type: 'varchar' })
+  @Column()
   fonte: string;
 
-  @Column({ type: 'timestamp', name: 'dt_atualizacao' })
+  @Column({ name: 'dt_atualizacao', type: 'timestamp' })
   dtAtualizacao: Date;
 }
