@@ -1,16 +1,20 @@
 import { Injectable, HttpException } from '@nestjs/common';
 import axios, { AxiosResponse } from 'axios';
-import { CorreiosService } from '../correios/correios.service';
-import { ViaCepResponse } from './dto/viacep.dto';
-import { BrasilApiCepResponse } from './dto/brasilapi.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Cep } from './cep.entity';
 
+import { CorreiosService } from '../correios/correios.service';
+import { Cep } from './cep.entity';
+import { ViaCepResponse } from './dto/viacep.dto';
+import { BrasilApiCepResponse } from './dto/brasilapi.dto';
+
+/**
+ * CONTRATO DA API (o que o frontend recebe)
+ */
 export interface CepResponse {
   cep: string;
-  logradouro: string;
-  bairro: string;
+  logradouro?: string;
+  bairro?: string;
   cidade: string;
   uf: string;
   origem: 'CORREIOS' | 'VIACEP' | 'BRASILAPI';
@@ -25,23 +29,30 @@ export class CepService {
     private readonly cepRepository: Repository<Cep>,
   ) {}
 
-  // =========================
-  // MÉTODO CENTRAL DE SALVAMENTO
-  // =========================
-  private async salvarCep(data: CepResponse): Promise<CepResponse> {
-    const entity = this.cepRepository.create(data);
-    const saved = await this.cepRepository.save(entity);
+  // ======================================================
+  // SALVA APENAS O QUE EXISTE NA TABELA geo.dim_cep
+  // ======================================================
+  private async salvarDimCep(data: {
+    cep: string;
+    cidade: string;
+    uf: string;
+    fonte: 'CORREIOS' | 'VIACEP' | 'BRASILAPI';
+  }): Promise<void> {
+    const entity = this.cepRepository.create({
+      cep: data.cep,
+      cidade: data.cidade,
+      uf: data.uf,
+      cepUnico: true,
+      fonte: data.fonte,
+      dtAtualizacao: new Date(),
+    });
 
-    return {
-      cep: saved.cep,
-      logradouro: saved.logradouro,
-      bairro: saved.bairro,
-      cidade: saved.cidade,
-      uf: saved.uf,
-      origem: saved.origem as CepResponse['origem'],
-    };
+    await this.cepRepository.save(entity);
   }
 
+  // ======================================================
+  // FLUXO PRINCIPAL
+  // ======================================================
   async buscarCep(cep: string): Promise<CepResponse> {
     // =========================
     // 1️⃣ CORREIOS (PRIORIDADE)
@@ -49,14 +60,21 @@ export class CepService {
     try {
       const correios = await this.correiosService.consultarCep(cep);
 
-      return this.salvarCep({
+      await this.salvarDimCep({
+        cep: correios.cep,
+        cidade: correios.municipio,
+        uf: correios.uf,
+        fonte: 'CORREIOS',
+      });
+
+      return {
         cep: correios.cep,
         logradouro: correios.logradouro,
         bairro: correios.bairro,
         cidade: correios.municipio,
         uf: correios.uf,
         origem: 'CORREIOS',
-      });
+      };
     } catch {
       // fallback silencioso
     }
@@ -73,14 +91,21 @@ export class CepService {
       const viaCep = viaCepResponse.data;
 
       if (!viaCep.erro) {
-        return this.salvarCep({
+        await this.salvarDimCep({
+          cep: viaCep.cep,
+          cidade: viaCep.localidade,
+          uf: viaCep.uf,
+          fonte: 'VIACEP',
+        });
+
+        return {
           cep: viaCep.cep,
           logradouro: viaCep.logradouro,
           bairro: viaCep.bairro,
           cidade: viaCep.localidade,
           uf: viaCep.uf,
           origem: 'VIACEP',
-        });
+        };
       }
     } catch {
       // fallback silencioso
@@ -97,14 +122,21 @@ export class CepService {
 
       const brasilApi = brasilApiResponse.data;
 
-      return this.salvarCep({
+      await this.salvarDimCep({
+        cep: brasilApi.cep,
+        cidade: brasilApi.city,
+        uf: brasilApi.state,
+        fonte: 'BRASILAPI',
+      });
+
+      return {
         cep: brasilApi.cep,
         logradouro: brasilApi.street,
         bairro: brasilApi.neighborhood,
         cidade: brasilApi.city,
         uf: brasilApi.state,
         origem: 'BRASILAPI',
-      });
+      };
     } catch {
       // fallback silencioso
     }
