@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { CorreiosService } from '../correios/correios.service';
+import { CorreiosCepV3Response } from '../correios/dto/correios-cep.dto';
 import { Cep } from './cep.entity';
 import { ViaCepResponse } from './dto/viacep.dto';
 import { BrasilApiCepResponse } from './dto/brasilapi.dto';
@@ -71,14 +72,15 @@ export class CepService {
     }
 
     // =========================
-    // CORREIOS
+    // 1️⃣ CORREIOS — API BUSCA CEP V3
     // =========================
     try {
-      const correios = await this.correiosService.consultarCep(cep);
+      const correios: CorreiosCepV3Response = 
+      await this.correiosService.consultarCep(cep);
 
       await this.upsertDimCep({
         cep: correios.cep,
-        cidade: correios.municipio,
+        cidade: correios.localidade,
         uf: correios.uf,
         fonte: 'CORREIOS',
       });
@@ -87,16 +89,16 @@ export class CepService {
         cep: correios.cep,
         logradouro: correios.logradouro,
         bairro: correios.bairro,
-        cidade: correios.municipio,
+        cidade: correios.localidade,
         uf: correios.uf,
         origem: 'CORREIOS',
       };
     } catch {
-      // segue
+      // fallback
     }
 
     // =========================
-    // VIA CEP
+    // 2️⃣ VIA CEP
     // =========================
     try {
       const viaCepResponse: AxiosResponse<ViaCepResponse> =
@@ -124,11 +126,11 @@ export class CepService {
         };
       }
     } catch {
-      // segue
+      // fallback
     }
 
     // =========================
-    // BRASIL API
+    // 3️⃣ BRASIL API
     // =========================
     try {
       const brasilApiResponse: AxiosResponse<BrasilApiCepResponse> =
@@ -154,7 +156,7 @@ export class CepService {
         origem: 'BRASILAPI',
       };
     } catch {
-      // segue
+      // fallback
     }
 
     throw new HttpException('CEP não encontrado', 404);

@@ -1,7 +1,7 @@
-export interface CorreiosCepResponse {
+export interface CorreiosCepV3Response {
   cep: string;
-  logradouro: string;
-  bairro: string;
-  municipio: string;
   uf: string;
+  localidade: string;
+  logradouro?: string;
+  bairro?: string;
 }
