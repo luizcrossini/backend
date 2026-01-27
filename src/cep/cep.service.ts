@@ -61,7 +61,6 @@ export class CepService {
     // CACHE FIRST
     // -------------------------
     const cache = await this.buscarNoBanco(cep);
-
     if (cache) {
       return {
         cep: cache.cep,
@@ -72,11 +71,11 @@ export class CepService {
     }
 
     // =========================
-    // 1️⃣ CORREIOS — API BUSCA CEP V3
+    // 1️⃣ CORREIOS — API BUSCA CEP V3 (SEMPRE PRIMEIRO)
     // =========================
     try {
-      const correios: CorreiosCepV3Response = 
-      await this.correiosService.consultarCep(cep);
+      const correios: CorreiosCepV3Response =
+        await this.correiosService.consultarCep(cep);
 
       await this.upsertDimCep({
         cep: correios.cep,
@@ -93,8 +92,9 @@ export class CepService {
         uf: correios.uf,
         origem: 'CORREIOS',
       };
-    } catch {
-      // fallback
+    } catch (error) {
+      // 🔴 LOG EXPLÍCITO — ESSENCIAL PARA SABER POR QUE CAI NO FALLBACK
+      console.error('❌ ERRO CORREIOS:', error);
     }
 
     // =========================
@@ -125,8 +125,8 @@ export class CepService {
           origem: 'VIACEP',
         };
       }
-    } catch {
-      // fallback
+    } catch (error) {
+      console.error('❌ ERRO VIA CEP:', error);
     }
 
     // =========================
@@ -155,8 +155,8 @@ export class CepService {
         uf: brasilApi.state,
         origem: 'BRASILAPI',
       };
-    } catch {
-      // fallback
+    } catch (error) {
+      console.error('❌ ERRO BRASIL API:', error);
     }
 
     throw new HttpException('CEP não encontrado', 404);
