@@ -8,7 +8,7 @@ export interface CepResponse {
   cep: string;
   logradouro: string;
   bairro: string;
-  municipio: string;
+  cidade: string;
   uf: string;
   origem: 'CORREIOS' | 'VIACEP' | 'BRASILAPI';
 }
