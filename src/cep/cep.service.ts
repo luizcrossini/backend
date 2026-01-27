@@ -8,9 +8,6 @@ import { Cep } from './cep.entity';
 import { ViaCepResponse } from './dto/viacep.dto';
 import { BrasilApiCepResponse } from './dto/brasilapi.dto';
 
-/**
- * CONTRATO DA API (o que o frontend recebe)
- */
 export interface CepResponse {
   cep: string;
   logradouro?: string;
@@ -30,15 +27,22 @@ export class CepService {
   ) {}
 
   // ======================================================
-  // SALVA APENAS O QUE EXISTE NA TABELA geo.dim_cep
+  // 1️⃣ CACHE-FIRST (BANCO)
   // ======================================================
-  private async salvarDimCep(data: {
+  private async buscarNoBanco(cep: string): Promise<Cep | null> {
+    return this.cepRepository.findOne({ where: { cep } });
+  }
+
+  // ======================================================
+  // 2️⃣ UPSERT (SEM DUPLICAR)
+  // ======================================================
+  private async upsertDimCep(data: {
     cep: string;
     cidade: string;
     uf: string;
     fonte: 'CORREIOS' | 'VIACEP' | 'BRASILAPI';
   }): Promise<void> {
-    const entity = this.cepRepository.create({
+    await this.cepRepository.save({
       cep: data.cep,
       cidade: data.cidade,
       uf: data.uf,
@@ -46,21 +50,33 @@ export class CepService {
       fonte: data.fonte,
       dtAtualizacao: new Date(),
     });
-
-    await this.cepRepository.save(entity);
   }
 
   // ======================================================
-  // FLUXO PRINCIPAL
+  // 3️⃣ FLUXO PRINCIPAL
   // ======================================================
   async buscarCep(cep: string): Promise<CepResponse> {
+    // -------------------------
+    // CACHE FIRST
+    // -------------------------
+    const cache = await this.buscarNoBanco(cep);
+
+    if (cache) {
+      return {
+        cep: cache.cep,
+        cidade: cache.cidade,
+        uf: cache.uf,
+        origem: cache.fonte as CepResponse['origem'],
+      };
+    }
+
     // =========================
-    // 1️⃣ CORREIOS (PRIORIDADE)
+    // CORREIOS
     // =========================
     try {
       const correios = await this.correiosService.consultarCep(cep);
 
-      await this.salvarDimCep({
+      await this.upsertDimCep({
         cep: correios.cep,
         cidade: correios.municipio,
         uf: correios.uf,
@@ -76,11 +92,11 @@ export class CepService {
         origem: 'CORREIOS',
       };
     } catch {
-      // fallback silencioso
+      // segue
     }
 
     // =========================
-    // 2️⃣ VIA CEP
+    // VIA CEP
     // =========================
     try {
       const viaCepResponse: AxiosResponse<ViaCepResponse> =
@@ -91,7 +107,7 @@ export class CepService {
       const viaCep = viaCepResponse.data;
 
       if (!viaCep.erro) {
-        await this.salvarDimCep({
+        await this.upsertDimCep({
           cep: viaCep.cep,
           cidade: viaCep.localidade,
           uf: viaCep.uf,
@@ -108,11 +124,11 @@ export class CepService {
         };
       }
     } catch {
-      // fallback silencioso
+      // segue
     }
 
     // =========================
-    // 3️⃣ BRASIL API
+    // BRASIL API
     // =========================
     try {
       const brasilApiResponse: AxiosResponse<BrasilApiCepResponse> =
@@ -122,7 +138,7 @@ export class CepService {
 
       const brasilApi = brasilApiResponse.data;
 
-      await this.salvarDimCep({
+      await this.upsertDimCep({
         cep: brasilApi.cep,
         cidade: brasilApi.city,
         uf: brasilApi.state,
@@ -138,12 +154,9 @@ export class CepService {
         origem: 'BRASILAPI',
       };
     } catch {
-      // fallback silencioso
+      // segue
     }
 
-    // =========================
-    // NADA FUNCIONOU
-    // =========================
     throw new HttpException('CEP não encontrado', 404);
   }
 }
